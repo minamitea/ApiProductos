@@ -5,6 +5,7 @@ import com.Perfulandia.ApiProductos.services.ProveedorService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.hateoas.Link;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -64,5 +65,38 @@ public class ProveedorController {
             String mensaje = "No se puede eliminar el proveedor porque tiene productos asociados.";
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", mensaje));
         }
+    }
+
+    /**
+     * Obtiene un proveedor por su ID y le añade enlaces HATEOAS.
+     */
+    @GetMapping("/hateoas/{id}")
+    public ProveedorDTO obtenerHATEOAS(@PathVariable Integer id) {
+        ProveedorDTO dto = proveedorService.obtenerProveedorPorId(id);
+        String gatewayUrl = "http://localhost:8888/api/proxy/proveedores";
+
+        dto.add(Link.of(gatewayUrl + "/hateoas/" + id).withSelfRel());
+        dto.add(Link.of(gatewayUrl).withRel("todos-los-proveedores"));
+        dto.add(Link.of(gatewayUrl + "/" + id).withRel("eliminar").withType("DELETE"));
+        dto.add(Link.of(gatewayUrl + "/" + id).withRel("actualizar").withType("PUT"));
+
+        return dto;
+    }
+
+    /**
+     * Obtiene todos los proveedores y añade enlaces HATEOAS a cada uno.
+     */
+    @GetMapping("/hateoas")
+    public List<ProveedorDTO> listarHATEOAS() {
+        List<ProveedorDTO> proveedores = proveedorService.listarProveedores();
+        String gatewayUrl = "http://localhost:8888/api/proxy/proveedores";
+
+        for (ProveedorDTO dto : proveedores) {
+            dto.add(Link.of(gatewayUrl + "/hateoas/" + dto.getIdProveedor()).withSelfRel());
+            dto.add(Link.of(gatewayUrl).withRel("crear-nuevo-proveedor").withType("POST"));
+            dto.add(Link.of(gatewayUrl).withRel("editar-proveedor").withType("PUT"));
+            dto.add(Link.of(gatewayUrl).withRel("eliminar-proveedor").withType("DELETE"));
+        }
+        return proveedores;
     }
 }

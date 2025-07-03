@@ -4,6 +4,7 @@ import com.Perfulandia.ApiProductos.dto.ProductoDTO;
 import com.Perfulandia.ApiProductos.services.ProductoService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.Link;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -53,5 +54,38 @@ public class ProductoController {
         } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    /**
+     * Obtiene un producto por su ID y le añade enlaces HATEOAS.
+     */
+    @GetMapping("/hateoas/{id}")
+    public ProductoDTO obtenerHATEOAS(@PathVariable Integer id) {
+        ProductoDTO dto = productoService.obtenerProductoPorId(id);
+        String gatewayUrl = "http://localhost:8888/api/proxy/productos";
+
+        dto.add(Link.of(gatewayUrl + "/hateoas/" + id).withSelfRel());
+        dto.add(Link.of(gatewayUrl).withRel("todos-los-productos"));
+        dto.add(Link.of(gatewayUrl + "/" + id).withRel("eliminar").withType("DELETE"));
+        dto.add(Link.of(gatewayUrl + "/" + id).withRel("actualizar").withType("PUT"));
+
+        return dto;
+    }
+
+    /**
+     * Obtiene todos los productos y añade enlaces HATEOAS a cada uno.
+     */
+    @GetMapping("/hateoas")
+    public List<ProductoDTO> listarHATEOAS() {
+        List<ProductoDTO> productos = productoService.listarProductos();
+        String gatewayUrl = "http://localhost:8888/api/proxy/productos";
+
+        for (ProductoDTO dto : productos) {
+            dto.add(Link.of(gatewayUrl + "/hateoas/" + dto.getIdProducto()).withSelfRel());
+            dto.add(Link.of(gatewayUrl).withRel("crear-nuevo-producto").withType("POST"));
+            dto.add(Link.of(gatewayUrl).withRel("editar-producto").withType("PUT"));
+            dto.add(Link.of(gatewayUrl).withRel("eliminar-producto").withType("DELETE"));
+        }
+        return productos;
     }
 }
