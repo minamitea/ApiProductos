@@ -1,9 +1,10 @@
 package com.Perfulandia.ApiProductos.dto;
 
 import lombok.Data;
+import org.springframework.hateoas.RepresentationModel;
 
 @Data
-public class ProductoDTO {
+public class ProductoDTO extends RepresentationModel<ProductoDTO> {
     private Integer idProducto;
     private String nombre;
     private String descripcion;

@@ -4,6 +4,7 @@ import com.Perfulandia.ApiProductos.dto.MarcaDTO;
 import com.Perfulandia.ApiProductos.services.MarcaService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.Link;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -53,5 +54,38 @@ public class MarcaController {
         } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    /**
+     * Obtiene una marca por su ID y le añade enlaces HATEOAS.
+     */
+    @GetMapping("/hateoas/{id}")
+    public MarcaDTO obtenerHATEOAS(@PathVariable Integer id) {
+        MarcaDTO dto = marcaService.obtenerMarcaPorId(id);
+        String gatewayUrl = "http://localhost:8888/api/proxy/marcas";
+
+        dto.add(Link.of(gatewayUrl + "/hateoas/" + id).withSelfRel());
+        dto.add(Link.of(gatewayUrl).withRel("todas-las-marcas"));
+        dto.add(Link.of(gatewayUrl + "/" + id).withRel("eliminar").withType("DELETE"));
+        dto.add(Link.of(gatewayUrl + "/" + id).withRel("actualizar").withType("PUT"));
+
+        return dto;
+    }
+
+    /**
+     * Obtiene todas las marcas y añade enlaces HATEOAS a cada una.
+     */
+    @GetMapping("/hateoas")
+    public List<MarcaDTO> listarHATEOAS() {
+        List<MarcaDTO> marcas = marcaService.listarMarcas();
+        String gatewayUrl = "http://localhost:8888/api/proxy/marcas";
+
+        for (MarcaDTO dto : marcas) {
+            dto.add(Link.of(gatewayUrl + "/hateoas/" + dto.getIdMarca()).withSelfRel());
+            dto.add(Link.of(gatewayUrl).withRel("crear-nueva-marca").withType("POST"));
+            dto.add(Link.of(gatewayUrl).withRel("editar-marca").withType("PUT"));
+            dto.add(Link.of(gatewayUrl).withRel("eliminar-marca").withType("DELETE"));
+        }
+        return marcas;
     }
 }
